@@ -1,0 +1,132 @@
+!/bin/bash
+#Owner=Ranjith K
+#Version=1.3
+#Do not edit anything
+
+echo -e "\033[0;32mEnter the daycount\033[0m"
+read -e daycount
+echo -e "\033[0;32mEnter the date of the daycount in YYYYMMDD to create learning files\033[0m"
+read -e Dt
+
+
+echo -e "\033[0;32mCheck the daycount and date once, if they are correct enter \033[0;33my\033[0m \033[0;32melse enter\033[0m \033[0;33mn\033[0m \033[0;32mto cancel the script\033[0m"
+read -e proceed
+if [ "$proceed" = "y" ]
+then
+products=(17 18 19 20 21 22 23 24)
+paths=("/qaoltp2/progam/loto/reports" "/qaoltp2/progam/pck3/reports" "/qaoltp2/progam/csh5/reports" "/qaoltp2/progam/tx2s/reports" "/qaoltp2/progam/dly4/reports" "/qaoltp2/progam/pwrb/reports" "/qaoltp2/progam/mlto/reports" "/qaoltp2/progam/alno/reports")
+
+#echo ${products[@]}
+liabfiles=()
+missedliabfiles=()
+missedwafiles=()
+wafiles=()
+dummyarray=()
+for i in ${products[@]}
+do
+
+        liabfiles+=(pw_liability_p0"$i"_c"$daycount".txt)
+        wafiles+=(WA_p0"$i"_c"$daycount".fil)
+done
+#echo ${liabfiles[@]}
+
+
+
+for i in ${liabfiles[@]}
+do
+        if ! [ -f "/qaoltp2/util/files/$i" ]
+        then
+                missedliabfiles+=($i)
+
+        fi
+done
+
+if [ "${#missedliabfiles[@]}" -eq  "${#missedwafiles[@]}" ]                         #-z "$(printf '%s ' "${missedfiles[@]}")" # to reference the length of an array we should use #
+then
+        echo -e  "\033[0;32mAll liability files are available\033[0m"
+else
+echo "${missedliabfiles[@]} are missing"
+
+echo -e "\033[0;32mdo you want to create missing files in the folder y/n?\033[0m"
+read -e preference
+if [ "$preference" = "y" ]
+then
+        for filename in ${missedliabfiles[@]}
+        do
+        touch /qaoltp2/util/files/"$filename"
+done
+else
+        exit 1
+fi
+fi
+unset preference
+#wafile checking
+for i in ${wafiles[@]}
+do
+        if ! [ -f "/qaoltp2/util/files/$i" ]
+        then
+                missedwafiles+=($i)
+
+        fi
+done
+
+if [ "${#missedwafiles[@]}" -eq  "${#dummyarray[@]}" ]                         #-z "$(printf '%s ' "${missedfiles[@]}")" # to reference the length of an array we should use #
+then
+        echo -e "\033[0;32mAll WA files are available\033[0m"
+else
+echo "${missedwafiles[@]} are missing"
+
+echo -e "\033[0;32mdo you want to create missing files in the folder y/n?\033[0m"
+read -e preference
+if [ "$preference" = "y" ]
+then
+        for filename in ${missedwafiles[@]}
+        do
+        touch /qaoltp2/util/files/"$filename"
+done
+else
+        exit 1
+fi
+fi
+
+mkdir /qaoltp2/progam/trpl/reports/bigwin
+
+for i in ${paths[@]}
+do
+cd $i
+cp ESR_BIGWIN*$daycount* /qaoltp2/progam/trpl/reports/bigwin
+done
+
+
+#scp
+#pass=Dsadm0708
+scp /qaoltp2/util/files/pw_liability*$daycount*.txt dsadm@serverip:/dbstaging/input/drawLiability
+scp /qaoltp2/util/files/WA*$daycount*.fil dsadm@serverip:/dbstaging/input/winnerAwareness
+scp /qaoltp2/prosys/acct/files/findata_load*$daycount*.csv dsadm@serverip:/dbstaging/input/financial
+echo -e "\033[32m\033[6mPlease enter gtkinst1 password for this one\033[0m"
+scp /qaoltp2/progam/trpl/reports/bigwin/ESR_BIGWIN*$daycount* gtkinst1@serverip:/dbstaging/input/bigwinnerOnline
+echo -e "\033[32m\033[6mPlease enter gtkinst1 password for this one\033[0m"
+scp /qaoltp2/prosys/acct/reports/statement*$daycount* gtkinst1@serverip:/dbstaging/input/statementBalance
+scp /qaoltp2/util/files/INCENTIVE*$daycount* dsadm@serverip:/dbstaging/input/retailerContest
+
+cd /qaoltp2/util/files/
+touch ExportBIDet_"$Dt".txt
+cd /qaoltp2/util/files/
+touch ExportBISumm_"$Dt".txt
+scp /qaoltp2/util/files/*$Dt* dsadm@serverip:/dbstaging/input/learning
+rm -f  /qaoltp2/util/files/ExportBIDet_"$Dt".txt /qaoltp2/util/files/ExportBISumm_"$Dt".txt
+rm -rf /qaoltp2/progam/trpl/reports/bigwin
+
+
+echo -e "\033[0;36mAll files are done, please go and trigger the loads in console\033[0m"
+
+unset liabfiles[@]
+unset missedliabfiles[@]
+unset missedwafiles[@]
+unset wafiles[@]
+unset dummyarray[@]
+unset paths[@]
+
+else
+exit 1
+fi
