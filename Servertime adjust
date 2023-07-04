@@ -1,0 +1,103 @@
+#!/bin/bash
+cd /qaoltp2/platform/timeutil/bin
+
+time=$(time | cut -c9-10)
+currenttime=$(time | sed 's/\(........\)\(..\)\(..\)\(..\)/\2:\3:\4/')
+echo "The current time is $currenttime"
+#echo $time
+temptime=$((10#$time))
+#echo $temptime
+echo -e "\nEnter your preference"
+
+Time(){
+#To settime to dayend after draw processing
+if [ $1 -eq 1 ]; then
+adjtime=23:58:00
+echo "The time will now be set to 23:58:00"
+cd /qaoltp2/platform/timeutil/bin/
+./adjtime_test <<+ > /qaoltp2/util/bin/temp.txt
+$1
+$adjtime
+Y
++
+elif [ $1 -eq 2 ]; then
+adjtime=3
+modifier="+3"
+settime=23
+printer="The time is now set to 23:00:00"
+limit=22
+
+while [ $temptime -lt $limit ]
+do
+ cd /qaoltp2/platform/timeutil/bin/
+./adjtime_test <<+ > /qaoltp2/util/bin/temp.txt
+$1
+$adjtime
+Y
++
+temptime=$((temptime$modifier))
+sleep 60s
+done
+
+echo $printer
+
+#adjusting time after increment
+cd /qaoltp2/platform/timeutil/bin/
+./adjtime_test<<+ > /qaoltp2/util/bin/temp.txt
+1
+$settime
+Y
++
+
+
+else
+adjtime=3
+modifier="-3"
+settime=4
+printer="The time is now  set to 04:00:00"
+limit=5
+
+#Time adjustment for decreasing
+while [ $temptime -gt $limit ]
+do
+ cd /qaoltp2/platform/timeutil/bin/
+./adjtime_test <<+ > /qaoltp2/util/bin/temp.txt
+$1
+$adjtime
+Y
++
+temptime=$((temptime$modifier))
+sleep 60s
+done
+echo $printer
+
+#adjusting time after  decrement
+cd /qaoltp2/platform/timeutil/bin/
+./adjtime_test<<+ > /qaoltp2/util/bin/temp.txt
+1
+$settime
+Y
++
+fi
+}
+echo "-------------------------------------------"
+
+red='tput setaf 1'
+cancel='tput sgr0'
+
+$red
+echo -e "\n Note: Only run the utility when the minutes in the current timeutil time is above 00 and below 40, if the time is not in the range please  set the time to the range and start"
+$cancel
+
+echo -e "\n Enter 1 to set time to 23:59:00
+\n Enter 2 to increase time and set to 23:00:00
+\n Enter 3 to decrease time and set to 4:00:00"
+echo "-------------------------------------------"
+
+read -e preference
+Time $preference
+
+
+rm -f /qaoltp2/util/bin/temp.txt
+
+unset -f Time
